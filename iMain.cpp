@@ -3,33 +3,50 @@
 #include <bits/stdc++.h>
 #include <windows.h>
 #include <mmsystem.h>
-
+#include <bits/stdc++.h>
+#define MAX_LINE 1024
 using namespace std;
 
 
-enum {HOME, LEVEL, GAME, END};
+enum {HOME, LEVEL, GAME, END, LEAD, HOW};
 // SYS 0 - home screen
 // SYS 1 - level screen
 // SYS 2 - game screen
-// SYS 3 - end scene
+// SYS 3 - end screen
+// SYS 4 - leaderboards screen
+// SYS 5 - how to play screen
 
-int sys = HOME;
+
+// Global variables & flags
+int sys = HOME; // starting screen
 int level = 0;
-int hour = 0;
+
+int hour = 0; // timer related global variable
 int minute = 0; 
 int sec = 0;
+
 int click_x = -1;
 int click_y = -1;
 
-int input_num = 0;
+int input_num = 0; // for taking number input in the sudoku grid
 int mode = 0;
 int input_flag = 0;
-bool musicOn = 1;
+
+int musicOn = 1; // controlling music
+
+int name_mode = 0; // for taking name input for the leaderboards
+int name_len = 0;
+char name_str[100];
+
+int error_flag = 0; // for error checking after submission
+int num_error = 0;
 
 
 
-int cell_border[9][9][4];
+int cell_border[9][9][4]; // for storing the coordinates of all the cells in the sudoku board
 
+
+// three boards based on levels. level 1 is easy, level 2 is mid, level 3 is hard.
 int board_level1[9][9] = {
     {5,3,0,0,7,0,0,0,0},
     {6,0,0,1,9,5,0,0,0},
@@ -66,12 +83,14 @@ int board_level3[9][9] = {
     {0,9,0,0,0,0,4,0,0}
 };
 
+
+// these are temporary boards which will be continuosly updated during the game
 int player_board_level1[9][9];
 int player_board_level2[9][9];
 int player_board_level3[9][9];
 
 
-
+// returns the first empty cell of a board
 pair <int, int> find_empty(int bo[9][9]) {
     for (int i = 0; i < 9; i++) {
         for (int j = 0; j < 9; j++) {
@@ -83,6 +102,7 @@ pair <int, int> find_empty(int bo[9][9]) {
     return {-1, -1};
 }
 
+// if we input a number in a cell, this function will check if the input was valid or not according to the rules of sudoku
 bool valid(int bo[9][9], int num, pair <int, int> pos){
     // Check row
     for (int i = 0; i < 9; i++) {
@@ -110,6 +130,7 @@ bool valid(int bo[9][9], int num, pair <int, int> pos){
     return true;
 }
 
+// prints the current board in terminal to visualize the process
 void print_board(int bo[9][9]){
     for (int i = 0; i < 9; i++) {
         if ((i % 3 == 0) && (i != 0)) {
@@ -131,6 +152,7 @@ void print_board(int bo[9][9]){
 	}
 }
 
+// backtracking algorithm for solving the entire sudoku board
 bool solve(int bo[9][9]) {
 	int row, col;
     pair <int, int> find = find_empty(bo);
@@ -160,7 +182,7 @@ bool solve(int bo[9][9]) {
 }
 
 
-
+// draws the sudoku grid in igraphics window
 void draw_grid() {
 	double shift_x = 0; 
 	double shift_y = -20;
@@ -188,7 +210,7 @@ void draw_grid() {
 	}
 }
 
-
+// place number in the cells 
 void place_numbers_in_grid(int bo[9][9], int init_bo[9][9]) {
 	double shift_x = 500/18 - 5; 
 	double shift_y = - 110;
@@ -214,30 +236,37 @@ void place_numbers_in_grid(int bo[9][9], int init_bo[9][9]) {
 	}
 }
 
+
 void draw_back_button() {
-	iSetColor(255, 0, 0);
-	iFilledCircle(25, 475, 10, 1000);
-	iSetColor(255, 255, 255);
+	iShowBMP(15, 455, "resources\\back.bmp");
 }
 
+// triggers backtracking
 void draw_auto_solve_button() {
-	iSetColor(255, 165, 0);
-	iFilledCircle(60, 475, 10, 1000);
-	iSetColor(255, 255, 255);
+	iShowBMP(50, 455, "resources\\solve.bmp");
 }
 
 void draw_submit_button() {
-	iSetColor(0, 255, 0);
-	iFilledCircle(95, 475, 10, 1000);
-	iSetColor(255, 255, 255);
+	iShowBMP(85, 455, "resources\\submit.bmp");
 }
 
+// music on_off toggler
+void draw_music_button() {
+	if (musicOn == 0) {
+		iShowBMP(15, 455, "resources\\music_off.bmp");
+	} else {
+		iShowBMP(15, 455, "resources\\music_on.bmp");
+	}
+}
+
+// set timer global variables to 0
 void reset_timer() {
 	hour = 0;
 	minute = 0; 
 	sec = 0;
 }
 
+// update the sec += 1, and calculate the hour and min according to that
 void update_timer() {
 	sec++;
 	if (sec >= 60) {
@@ -250,6 +279,7 @@ void update_timer() {
 	}
 }
 
+// draw the timer in the game screen
 void draw_timer() {
 	ostringstream oss_h;
     oss_h << setw(2) << setfill('0') << hour;
@@ -269,6 +299,7 @@ void draw_timer() {
 	iText(350, 470, cstr , GLUT_BITMAP_HELVETICA_18);
 }
 
+// draw the timer in the end screen
 void draw_timer_for_end() {
 	ostringstream oss_h;
     oss_h << setw(2) << setfill('0') << hour;
@@ -286,11 +317,31 @@ void draw_timer_for_end() {
 	char* cstr = new char[temp.size() + 1];
 	strcpy(cstr, temp.c_str());
 
-	iText(55, 150, "~ TOTAL TIME NEEDED TO COMPLETE THE LEVEL ~", GLUT_BITMAP_9_BY_15);
-	iText(80, 120, cstr , GLUT_BITMAP_HELVETICA_18);
+	iText(55, 200, "~ TOTAL TIME NEEDED TO COMPLETE THE LEVEL ~", GLUT_BITMAP_9_BY_15);
+	iText(80, 170, cstr , GLUT_BITMAP_HELVETICA_18);
 }
 
+// taking the name input after finishing a level for leaderboards 
+void data_input_for_end() {
+	iText(72, 110, "SHOWCASE YOUR NAME IN THE LEADERBOARDS", GLUT_BITMAP_9_BY_15);
 
+	iRectangle(150, 70, 200, 30);
+
+	if (name_mode == 1) {
+		iSetColor(255, 0, 0);
+		iRectangle(150, 70, 200, 30);
+		iSetColor(255, 255, 255);
+
+		string str(name_str);
+		char* cstr = new char[std::strlen(name_str) + 1];
+		strcpy(cstr, name_str);
+
+		iText(165, 80, cstr);
+	}
+
+}
+
+// populate the cell_border array
 void generate_cell_border() {
 	double shift_x = 0; 
 	double shift_y = -80;
@@ -311,6 +362,7 @@ void generate_cell_border() {
 	}
 }
 
+// selecting a valid cell and after selecting a valid cell, the border color will be changed
 pair <int, int> select_cell(int mx, int my, int level) {
 	int bo[9][9];
 
@@ -343,7 +395,7 @@ pair <int, int> select_cell(int mx, int my, int level) {
 }
 
 
-
+// inputing a number in the valid cell
 void write_cell() {
 	pair <int, int> pos = select_cell(click_x, click_y, level);
 	int bo[9][9];
@@ -383,10 +435,12 @@ void write_cell() {
 		}
 		input_flag = 0;
 		input_num = 0;
+		error_flag = 0;
 	}
 }
 
-bool win_check() {
+// checking if a submission is right or wrong by counting total errors (error = 0 means right solution)
+int win_check() {
 	int current_bo[9][9];
 	int solved_bo[9][9];
 	switch(level) {
@@ -406,23 +460,117 @@ bool win_check() {
 			solve(solved_bo);
 			break;
 	}
-	bool solved_flag = 1;
+	int errors = 0;
 	for (int i = 0; i < 9; i++) {
 		for (int j = 0; j < 9; j++) {
 			if (current_bo[i][j] != solved_bo[i][j]) {
-				solved_flag = 0;
-				break;
+				errors++;
 			}
 		}
 	}
-	return solved_flag;
+	return errors;
 }
 
+// overriding cmp function for sorting vector of pairs
+bool cmp(pair<string, int> a, pair <string, int> b) {
+	return a.second < b.second;
+}
 
-// add music
-// vesion control and documentation
+// reading data from csv file (csv file is our offline database)
+vector <pair <string, int>> read_data() {
+	FILE *file = fopen("record.csv", "r");
+    if (!file) {
+        perror("Could not open file");
+    }
 
+    char line[MAX_LINE];
 
+	vector <pair <string, int>> v;
+    while (fgets(line, MAX_LINE, file)) {
+        char * token = strtok(line, ",");
+		int i = 0;
+		pair <string, string> p;
+		int val;
+        while (token) {
+            if (i == 0) {
+				p.first = token;
+			} else {
+				p.second = token;
+				p.second[p.second.size() - 1] = '\0';
+				val = stoi(p.second);
+			}
+			i++;
+			token = strtok(NULL, ",");
+        }
+		v.push_back({p.first, val});
+    }
+
+	sort(v.begin(), v.end(), cmp);
+
+    fclose(file);
+	return v;
+}
+
+// writing data to csv file (csv file is our offline database)
+void write_data(const char * line) {
+	FILE *file = fopen("record.csv", "a+");
+    if (!file) {
+        perror("Could not open file");
+    }
+
+    fprintf(file, line);
+    fclose(file);
+}
+
+// show information (name & time) in the leaderboard page
+void show_leaders() {
+	vector <pair <string, int>> v = read_data();
+
+	double shift_x = 210; 
+	double shift_y = - 248;
+
+	double dx = 60;
+	double dy = 38;
+
+	for (int i = 0; i < 6; i++) {
+		pair <string, int> pa = v[i];
+
+		
+		char* cstr = new char[pa.first.size() + 1];
+		strcpy(cstr, pa.first.c_str());
+
+		int hour_rec = pa.second / 3600;
+		int minute_rec = (pa.second % 3600) / 60;
+		int sec_rec = pa.second % 60;
+
+		ostringstream oss_h;
+		oss_h << setw(2) << setfill('0') << hour_rec;
+		string formattedhour = oss_h.str();
+
+		ostringstream oss_m;
+		oss_m << setw(2) << setfill('0') << minute_rec;
+		string formattedminute = oss_m.str();
+
+		ostringstream oss_s;
+		oss_s << setw(2) << setfill('0') << sec_rec;
+		string formattedsec = oss_s.str();
+
+		string temp = formattedhour + "H : " + formattedminute + "M : " + formattedsec + "S";
+		char* cstr2 = new char[temp.size() + 1];
+		strcpy(cstr2, temp.c_str());
+
+		iText(dx, (500 - dy*i) + shift_y, cstr, GLUT_BITMAP_9_BY_15);
+		iText(dx + shift_x, (500 - dy*i) + shift_y, cstr2, GLUT_BITMAP_9_BY_15);
+	}
+}
+
+// if a solution is incorrect, write how many errors are in the board
+void write_error() {
+	string temp = "THERE ARE " + to_string(num_error) + " ERROR(S) IN YOUR SOLUTION";
+	char* cstr = new char[temp.size() + 1];
+	strcpy(cstr, temp.c_str());
+	iText(90, 430, cstr, GLUT_BITMAP_9_BY_15);
+}
 
 
 
@@ -430,19 +578,26 @@ bool win_check() {
 
 void iDraw() {
 	iClear();
+
+	// music control
 	if (musicOn == 1) {
-		PlaySound("bgm1.wav", NULL, SND_LOOP | SND_ASYNC);
-		musicOn = 0;
+		PlaySound("resources\\bgm1.wav", NULL, SND_LOOP | SND_ASYNC);
+		musicOn = 2;
 	}
 
+	if (musicOn == 0) {
+		PlaySound(NULL, NULL, SND_PURGE);
+	}
+
+
+	// functionalities and transition to different screens
 	switch(sys) {
 		case HOME:
-			iShowBMP(10, 50, "poster.bmp");
-			iSetColor(255, 255, 255);
-			iText(110, 30, "PRESS ANY KEY TO CONTINUE", GLUT_BITMAP_HELVETICA_18);
+			iShowBMP(10, 0, "resources\\poster.bmp");
+			draw_music_button();
 			break;
 		case LEVEL:
-			iShowBMP(10, 0, "level.bmp");
+			iShowBMP(10, 0, "resources\\level.bmp");
 			draw_back_button();
 			break;
 		case GAME:
@@ -464,18 +619,31 @@ void iDraw() {
 					break;
 			}
 			write_cell();
+			if (error_flag) write_error();
 			break;
 		case END:
-			iShowBMP(10, 20, "END.bmp");
+			iShowBMP(10, 50, "resources\\end.bmp");
 			iSetColor(255, 255, 255);
+			draw_back_button();
 			draw_timer_for_end();
-			iText(55, 30, "PRESS (X) TO EXIT OR (C) TO RESTART THE GAME", GLUT_BITMAP_9_BY_15);
+			data_input_for_end();
+			iText(30, 30, "PRESS (END) TO EXIT OR (HOME) TO RESTART THE GAME", GLUT_BITMAP_9_BY_15);
+			break;
+		case LEAD:
+			iShowBMP(10, 10, "resources\\lead.bmp");
+			show_leaders();
+			draw_back_button();
+			break;
+		case HOW:
+			iShowBMP(10, 20, "resources\\rules.bmp");
+			draw_back_button();
 			break;
 	}
 	
 }
 
 
+// haven't used this function
 void iMouseMove(int mx, int my) {
 	printf("x = %d, y= %d\n",mx,my);
 	if (mx < 100 && my < 100) {
@@ -483,12 +651,30 @@ void iMouseMove(int mx, int my) {
 	}
 }
 
-
+// tracking down mouse movement and triggering different function when mouse clicks
 void iMouse(int button, int state, int mx, int my) {
 	if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
 		printf("x = %d, y= %d\n",mx,my);
 		// first sys screens should be handled first.
-		if (sys == LEVEL) {
+		if (sys == HOME) {
+			if (sqrt((mx-31)*(mx-31) + (my-472)*(my-472)) <= 14) {
+				if (musicOn > 0) musicOn = 0;
+				else musicOn = 1;
+			}
+
+			if (mx >= 125 && mx <= 375 && my >= 230 && my <= 280) {
+				sys = LEVEL;
+			}
+
+			if (mx >= 125 && mx <= 375 && my >= 150 && my <= 200) {
+				sys = LEAD;
+			}
+
+			if (mx >= 125 && mx <= 375 && my >= 70 && my <= 120) {
+				sys = HOW;
+			}
+		}
+		else if (sys == LEVEL) {
 			if (mx >= 125 && mx <= 375 && my >= 230 && my <= 280) {
 				// level 1
 				level = 1;
@@ -513,18 +699,19 @@ void iMouse(int button, int state, int mx, int my) {
 				reset_timer();
 			}
 
-			if (sqrt((mx-25)*(mx-25) + (my-475)*(my-475)) <= 10) {
+			if (sqrt((mx-31)*(mx-31) + (my-472)*(my-472)) <= 14) {
 				sys = HOME;
 			}
 		}
 
 		else if (sys == GAME) {
-			if (sqrt((mx-25)*(mx-25) + (my-475)*(my-475)) <= 10) {
+			if (sqrt((mx-31)*(mx-31) + (my-472)*(my-472)) <= 14) {
 				sys = LEVEL;
+				error_flag = 0;
 				reset_timer();
 			}
 
-			if (sqrt((mx-60)*(mx-60) + (my-475)*(my-475)) <= 10) {
+			if (sqrt((mx-66)*(mx-66) + (my-472)*(my-472)) <= 14) {
 				cout << "trig" << "\n";
 				switch (level) {
 					case 1:
@@ -542,15 +729,35 @@ void iMouse(int button, int state, int mx, int my) {
 				}
 			}
 
-			if (sqrt((mx-95)*(mx-95) + (my-475)*(my-475)) <= 10) {
-				if (win_check()) {
+			if (sqrt((mx-101)*(mx-101) + (my-472)*(my-472)) <= 14) {
+				num_error = win_check();
+				if (num_error == 0) {
 					sys = END;
 					iPauseTimer(0);
+				} else {
+					error_flag = 1;
 				}
 			}
 
 			click_x = mx;
 			click_y = my;
+		} else if (sys == END) {
+			if (sqrt((mx-31)*(mx-31) + (my-472)*(my-472)) <= 14) {
+				sys = LEVEL;
+				iResumeTimer(0);
+			}
+			if(mx >= 150 && mx <= 350 && my >= 70 && my <= 100 && name_mode == 0) {
+				name_mode = 1;
+				// 150, 70, 200, 30
+			}
+		} else if (sys == LEAD) {
+			if (sqrt((mx-31)*(mx-31) + (my-472)*(my-472)) <= 14) {
+				sys = HOME;
+			}
+		} else if (sys == HOW) {
+			if (sqrt((mx-31)*(mx-31) + (my-472)*(my-472)) <= 14) {
+				sys = HOME;
+			}
 		}
 	}
 
@@ -558,19 +765,8 @@ void iMouse(int button, int state, int mx, int my) {
 	}
 }
 
-
+// tracking down keyboard presses, taking inputs and triggering different function
 void iKeyboard(unsigned char key) {
-	if ((sys == HOME) && (key)) {
-		sys = LEVEL;
-	} else if (sys == END) {
-		if (key == 'x') {
-			exit(0);
-		} else if (key == 'c') {
-			iResumeTimer(0);
-			sys = HOME;
-		}
-	}
-
 	if(sys == GAME && mode == 1)
 	{
         if(key == '\r')
@@ -584,22 +780,70 @@ void iKeyboard(unsigned char key) {
 			input_num = key - '0';
 		}
 	}
+
+	if (sys == END && name_mode == 1) {
+		int i;
+		if(name_mode == 1)
+		{
+			if(key == '\r')
+			{
+				name_mode = 0;
+
+				char buffer[200];
+				int time = hour * 3600 + minute * 60 + sec;
+				std::sprintf(buffer, "%s,%d\n", name_str, time);
+				const char* line = buffer;
+
+				write_data(line);
+
+				for(i = 0; i < name_len; i++)
+					name_str[i] = 0;
+				name_len = 0;
+
+				vector <pair <string, int>> v = read_data();
+
+				for (auto pa: v) {
+					cout << pa.first << "-" << pa.second << "\n";
+				}
+				sys = LEAD;
+				iResumeTimer(0);
+			} else if (key == '\b') {
+				name_str[name_len-1] = 0;
+				name_len--;
+			}
+			else
+			{
+				name_str[name_len] = key;
+				name_len++;
+			}
+		}
+	}
 }
 
-
+// only used in the end screen
 void iSpecialKeyboard(unsigned char key) {
 	if (key == GLUT_KEY_END) {
 		exit(0);
+	}
+
+	if (sys == END) {
+		if (key == GLUT_KEY_END) {
+			exit(0);
+		} else if (key == GLUT_KEY_HOME) {
+			iResumeTimer(0);
+			sys = HOME;
+		}
 	}
 }
 
 
 int main() {
+	// populating player board
 	memcpy(player_board_level1, board_level1, sizeof(board_level1));
 	memcpy(player_board_level2, board_level2, sizeof(board_level2));
 	memcpy(player_board_level3, board_level3, sizeof(board_level3));
 
-	iSetTimer(1000, update_timer);
-	iInitialize(500, 500, "SUDOKU by Ahammad");
+	iSetTimer(1000, update_timer); // updating the sec += 1 after 1000 milisec
+	iInitialize(500, 500, "iSUDOKU by Ahammad"); // initializing the window
 	return 0;
 }
