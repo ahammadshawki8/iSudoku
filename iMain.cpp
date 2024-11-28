@@ -365,10 +365,10 @@ void generate_cell_border() {
 // selecting a valid cell and after selecting a valid cell, the border color will be changed
 pair <int, int> select_cell(int mx, int my, int level) {
 	int bo[9][9];
-
 	if (level == 1) {
 		memcpy(bo, board_level1, sizeof(board_level1));
 	} else if (level == 2) {
+		// printf("trig");
 		memcpy(bo, board_level2, sizeof(board_level2));
 	} else {
 		memcpy(bo, board_level3, sizeof(board_level3));
@@ -376,7 +376,7 @@ pair <int, int> select_cell(int mx, int my, int level) {
 
 	for (int i = 0; i < 9; i++) {
 		for (int j = 0; j < 9; j++) {
-			if (mx >= cell_border[i][j][0] && mx <= cell_border[i][j][2] && my <= cell_border[i][j][1] && my >= cell_border[i][j][3]) {
+			if ((mx >= cell_border[i][j][0]) && (mx <= cell_border[i][j][2]) && (my <= cell_border[i][j][1]) && (my >= cell_border[i][j][3])) {
 				if (bo[i][j] == 0) {
 					mode = 1;
 					iSetColor(0, 255, 0);
@@ -613,9 +613,11 @@ void iDraw() {
 					break;
 				case 2:
 					place_numbers_in_grid(player_board_level2, board_level2);
+					generate_cell_border();
 					break;
 				case 3:
 					place_numbers_in_grid(player_board_level3, board_level3);
+					generate_cell_border();
 					break;
 			}
 			write_cell();
@@ -712,7 +714,6 @@ void iMouse(int button, int state, int mx, int my) {
 			}
 
 			if (sqrt((mx-66)*(mx-66) + (my-472)*(my-472)) <= 14) {
-				cout << "trig" << "\n";
 				switch (level) {
 					case 1:
 						memcpy(player_board_level1, board_level1, sizeof(board_level1));
@@ -774,8 +775,10 @@ void iKeyboard(unsigned char key) {
 			mode = 0;
 			printf("%d\n", input_num);
 			input_flag = 1;
+		} else if (key == '\b') {
+			input_num = 0;
 		}
-		else
+		else if (key == '1' || key == '2' || key == '3' || key == '4' || key == '5' || key == '6'|| key == '7'|| key == '8' || key == '9' || key == '0')
 		{
 			input_num = key - '0';
 		}
